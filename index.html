@@ -700,6 +700,578 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 });
+
+/* ---------- Helpers ---------- */
+function el(tag, props = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') node.className = v;
+    else if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+    else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k === 'html') node.innerHTML = v;
+    else if (v !== undefined && v !== null) node.setAttribute(k, v);
+  }
+  for (const c of children.flat()) {
+    if (c == null) continue;
+    node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return node;
+}
+
+function fmt(n, decimals = 2) {
+  if (!isFinite(n)) return '—';
+  return Number(n).toLocaleString(undefined, { maximumFractionDigits: decimals, minimumFractionDigits: 0 });
+}
+
+function inchesToFeetInches(totalInches) {
+  if (!isFinite(totalInches)) return '—';
+  const sign = totalInches < 0 ? '-' : '';
+  const t = Math.abs(totalInches);
+  const ft = Math.floor(t / 12);
+  const inch = t - ft * 12;
+  const inchRounded = Math.round(inch * 16) / 16;
+  return `${sign}${ft}' ${fmt(inchRounded, 4)}"`;
+}
+
+function makeCopyButton(getText) {
+  const btn = el('button', { class: 'copy-btn', title: 'Copy result to clipboard' }, 'Copy');
+  btn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(getText());
+      btn.classList.add('copied');
+      btn.textContent = 'Copied';
+      setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Copy'; }, 1400);
+    } catch (e) {
+      btn.textContent = 'Err';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1400);
+    }
+  });
+  return btn;
+}
+
+function field(label, input) {
+  return el('div', { class: 'field' }, el('label', {}, label), input);
+}
+
+function numberInput(value, opts = {}) {
+  const inp = el('input', { type: 'number', step: opts.step || '1', min: opts.min, max: opts.max, value });
+  return inp;
+}
+
+/* ---------- Calculator: Lumber Estimator ---------- */
+function buildLumberEstimator() {
+  const container = el('div', { class: 'calc' });
+  container.appendChild(el('h3', {}, '1. Lumber Estimator'));
+  container.appendChild(el('p', { class: 'desc' }, 'Stud count and plate footage for a stud wall, including king and trimmer studs around openings.'));
+
+  const wallLen = numberInput(20, { step: '0.5', min: '1', max: '200' });
+  const wallHt = numberInput(8, { step: '0.5', min: '4', max: '20' });
+  const spacing = el('select', {},
+    el('option', { value: '16' }, '16" OC'),
+    el('option', { value: '24' }, '24" OC')
+  );
+  const windows = numberInput(1, { step: '1', min: '0', max: '20' });
+  const doors = numberInput(1, { step: '1', min: '0', max: '10' });
+
+  const out = el('div', { class: 'output' });
+  const breakdown = el('div', { class: 'breakdown' });
+
+  function recompute() {
+    const L = parseFloat(wallLen.value) || 0;
+    const H = parseFloat(wallHt.value) || 0;
+    const sp = parseInt(spacing.value, 10);
+    const win = Math.max(0, parseInt(windows.value, 10) || 0);
+    const dr = Math.max(0, parseInt(doors.value, 10) || 0);
+
+    // Common studs at spacing + 1 (start) + corner studs (3 typical), simplified
+    const ocFt = sp / 12;
+    const commonStuds = Math.ceil(L / ocFt) + 1;
+    const cornerStuds = 3; // corner/end blocking
+    // Each opening: 2 king + 2 trimmer (jacks), header above, cripples
+    const kingStuds = (win + dr) * 2;
+    const trimmerStuds = (win + dr) * 2;
+    const cripples = win * 2 + dr * 1; // rough estimate of short studs above headers
+
+    const totalStuds = commonStuds + cornerStuds + kingStuds + trimmerStuds + cripples;
+
+    // Plates: bottom + double top = 3 × wall length
+    const plateLF = L * 3;
+
+    // Header material — rough estimate: 4 ft per opening of 2x doubled
+    const headerLF = (win + dr) * 4;
+
+    out.innerHTML = '';
+    out.appendChild(makeCopyButton(() => copyText));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Common studs'), el('span', { class: 'val' }, String(commonStuds))));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Corner / end studs'), el('span', { class: 'val' }, String(cornerStuds))));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'King studs'), el('span', { class: 'val' }, String(kingStuds))));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Trimmer (jack) studs'), el('span', { class: 'val' }, String(trimmerStuds))));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Cripple studs (est.)'), el('span', { class: 'val' }, String(cripples))));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Total studs (' + H + ' ft)'), el('span', { class: 'val' }, String(totalStuds))));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Plate stock (linear ft)'), el('span', { class: 'val' }, fmt(plateLF, 1) + ' ft')));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Header stock (linear ft)'), el('span', { class: 'val' }, fmt(headerLF, 1) + ' ft')));
+
+    breakdown.innerHTML = `
+      <strong>Math:</strong><br>
+      Common studs = ⌈${L} ft ÷ ${ocFt.toFixed(2)} ft⌉ + 1 = ${commonStuds}<br>
+      Corner/end studs assumed = 3 (adjust for layout)<br>
+      Each opening: 2 king + 2 trimmer studs → ${win + dr} openings × 4 = ${(win + dr) * 4}<br>
+      Plates = bottom + 2× top = 3 × ${L} ft = ${plateLF.toFixed(1)} ft<br>
+      Header stock estimated at 4 ft per opening (size to span + 6")
+    `;
+    out.appendChild(breakdown);
+
+    var copyText = `Lumber Estimate (${L}' × ${H}' wall, ${sp}" OC)\n` +
+      `Total studs: ${totalStuds}\n` +
+      `  Common: ${commonStuds}\n  Corner/end: ${cornerStuds}\n  King: ${kingStuds}\n  Trimmer: ${trimmerStuds}\n  Cripples: ${cripples}\n` +
+      `Plate stock: ${plateLF.toFixed(1)} linear ft\n` +
+      `Header stock: ${headerLF.toFixed(1)} linear ft`;
+  }
+
+  [wallLen, wallHt, spacing, windows, doors].forEach(i => i.addEventListener('input', recompute));
+
+  const inputs = el('div', { class: 'input-group' },
+    field('Wall length (ft)', wallLen),
+    field('Wall height (ft)', wallHt),
+    field('Stud spacing', spacing),
+    field('Number of windows', windows),
+    field('Number of doors', doors)
+  );
+
+  container.appendChild(el('div', { class: 'calc-grid' }, inputs, out));
+  recompute();
+  return container;
+}
+
+/* ---------- Calculator: Stair Calculator ---------- */
+function buildStairCalculator() {
+  const container = el('div', { class: 'calc' });
+  container.appendChild(el('h3', {}, '2. Stair Calculator'));
+  container.appendChild(el('p', { class: 'desc' }, 'Compute risers, treads, total run, and stringer length from total rise. IRC code limits: riser 4–7¾", tread ≥ 10".'));
+
+  const totalRise = numberInput(108, { step: '0.125', min: '12', max: '240' });
+  const treadDepth = numberInput(10, { step: '0.125', min: '9', max: '14' });
+
+  const out = el('div', { class: 'output' });
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'calc-svg');
+  svg.setAttribute('viewBox', '0 0 400 220');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+  function recompute() {
+    const rise = parseFloat(totalRise.value) || 0;
+    const tread = parseFloat(treadDepth.value) || 10;
+
+    // Aim for ideal riser ~7"
+    const idealRiser = 7;
+    let nRisers = Math.round(rise / idealRiser);
+    if (nRisers < 1) nRisers = 1;
+    const riserHt = rise / nRisers;
+    const nTreads = nRisers - 1;
+    const totalRun = nTreads * tread;
+    const stringer = Math.sqrt(rise * rise + totalRun * totalRun);
+
+    const riserOK = riserHt >= 4 && riserHt <= 7.75;
+    const treadOK = tread >= 10;
+    // Rule of thumb: 2R + T ≈ 24–25"
+    const rule = 2 * riserHt + tread;
+    const ruleOK = rule >= 23 && rule <= 25.5;
+
+    out.innerHTML = '';
+    out.appendChild(makeCopyButton(() => copyText));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Number of risers'), el('span', { class: 'val' }, String(nRisers))));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Number of treads'), el('span', { class: 'val' }, String(nTreads))));
+    const riseLine = el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Riser height'), el('span', { class: 'val' }, fmt(riserHt, 3) + '"'));
+    riseLine.querySelector('.val').appendChild(el('span', { class: 'badge ' + (riserOK ? 'ok' : 'bad') }, riserOK ? 'CODE OK' : 'OUT OF CODE'));
+    out.appendChild(riseLine);
+    const treadLine = el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Tread depth'), el('span', { class: 'val' }, fmt(tread, 3) + '"'));
+    treadLine.querySelector('.val').appendChild(el('span', { class: 'badge ' + (treadOK ? 'ok' : 'bad') }, treadOK ? 'CODE OK' : 'TOO SHALLOW'));
+    out.appendChild(treadLine);
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Total run'), el('span', { class: 'val' }, fmt(totalRun, 2) + '" (' + inchesToFeetInches(totalRun) + ')')));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Stringer length'), el('span', { class: 'val' }, fmt(stringer, 2) + '" (' + inchesToFeetInches(stringer) + ')')));
+    const ruleLine = el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, '2R + T (target 24–25")'), el('span', { class: 'val' }, fmt(rule, 2) + '"'));
+    ruleLine.querySelector('.val').appendChild(el('span', { class: 'badge ' + (ruleOK ? 'ok' : 'warn') }, ruleOK ? 'COMFORTABLE' : 'CHECK'));
+    out.appendChild(ruleLine);
+    out.appendChild(el('div', { class: 'breakdown', html:
+      `<strong>Math:</strong><br>
+      Risers = round(${rise}" ÷ 7") = ${nRisers}<br>
+      Riser height = ${rise}" ÷ ${nRisers} = ${riserHt.toFixed(4)}"<br>
+      Treads = risers − 1 = ${nTreads}<br>
+      Total run = ${nTreads} × ${tread}" = ${totalRun.toFixed(2)}"<br>
+      Stringer = √(${rise.toFixed(2)}² + ${totalRun.toFixed(2)}²) = ${stringer.toFixed(2)}"<br>
+      <em>Add nosing (¾"–1¼") to tread depth on the actual cut.</em>`
+    }));
+
+    drawStairSvg(nRisers, riserHt, tread, rise, totalRun);
+
+    var copyText = `Stair Calculation (rise ${rise}", tread ${tread}")\n` +
+      `Risers: ${nRisers}\n` +
+      `Riser height: ${riserHt.toFixed(3)}" ${riserOK ? '(code OK)' : '(OUT OF CODE)'}\n` +
+      `Treads: ${nTreads}\n` +
+      `Total run: ${totalRun.toFixed(2)}" (${inchesToFeetInches(totalRun)})\n` +
+      `Stringer length: ${stringer.toFixed(2)}" (${inchesToFeetInches(stringer)})\n` +
+      `2R + T = ${rule.toFixed(2)}" ${ruleOK ? '(comfortable)' : '(check)'}`;
+  }
+
+  function drawStairSvg(nRisers, riserHt, tread, totalRise, totalRun) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const W = 400, H = 220, pad = 24;
+    const drawW = W - 2 * pad, drawH = H - 2 * pad;
+    const scale = Math.min(drawW / Math.max(totalRun, 1), drawH / Math.max(totalRise, 1));
+    const x0 = pad, y0 = H - pad;
+
+    // Background grid lines
+    for (let g = 0; g <= drawH; g += 20) {
+      const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      ln.setAttribute('x1', pad); ln.setAttribute('x2', W - pad);
+      ln.setAttribute('y1', y0 - g); ln.setAttribute('y2', y0 - g);
+      ln.setAttribute('stroke', '#222'); ln.setAttribute('stroke-width', '1');
+      svg.appendChild(ln);
+    }
+
+    // Build the staircase outline
+    let pts = `${x0},${y0} `;
+    for (let i = 0; i < nRisers; i++) {
+      const x = x0 + i * tread * scale;
+      const yTop = y0 - (i + 1) * riserHt * scale;
+      pts += `${x},${y0 - i * riserHt * scale} `;
+      pts += `${x},${yTop} `;
+      pts += `${x + tread * scale},${yTop} `;
+    }
+    pts += `${x0 + nRisers * tread * scale},${y0} `;
+
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', pts);
+    poly.setAttribute('fill', 'rgba(212, 165, 116, 0.18)');
+    poly.setAttribute('stroke', '#d4a574');
+    poly.setAttribute('stroke-width', '1.5');
+    svg.appendChild(poly);
+
+    // Stringer line (hypotenuse)
+    const sline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    sline.setAttribute('x1', x0); sline.setAttribute('y1', y0);
+    sline.setAttribute('x2', x0 + nRisers * tread * scale);
+    sline.setAttribute('y2', y0 - nRisers * riserHt * scale);
+    sline.setAttribute('stroke', '#7fb069');
+    sline.setAttribute('stroke-width', '1.5');
+    sline.setAttribute('stroke-dasharray', '5,4');
+    svg.appendChild(sline);
+
+    // Labels
+    const lblRise = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    lblRise.setAttribute('x', W - pad - 4); lblRise.setAttribute('y', pad + 12);
+    lblRise.setAttribute('fill', '#d4a574'); lblRise.setAttribute('font-size', '11');
+    lblRise.setAttribute('text-anchor', 'end');
+    lblRise.textContent = `Rise ${totalRise.toFixed(1)}"`;
+    svg.appendChild(lblRise);
+    const lblRun = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    lblRun.setAttribute('x', W - pad - 4); lblRun.setAttribute('y', pad + 26);
+    lblRun.setAttribute('fill', '#d4a574'); lblRun.setAttribute('font-size', '11');
+    lblRun.setAttribute('text-anchor', 'end');
+    lblRun.textContent = `Run ${totalRun.toFixed(1)}"`;
+    svg.appendChild(lblRun);
+  }
+
+  [totalRise, treadDepth].forEach(i => i.addEventListener('input', recompute));
+
+  const inputs = el('div', { class: 'input-group' },
+    field('Total rise — floor to floor (inches)', totalRise),
+    field('Tread depth (inches)', treadDepth),
+    el('div', { class: 'disclaimer' }, 'IRC R311.7: max riser 7¾", min tread 10", max variance ⅜" within a flight. Verify with local code.')
+  );
+
+  const outputCol = el('div', {}, out, svg);
+  container.appendChild(el('div', { class: 'calc-grid' }, inputs, outputCol));
+  recompute();
+  return container;
+}
+
+/* ---------- Calculator: Roof Pitch ---------- */
+function buildRoofPitch() {
+  const container = el('div', { class: 'calc' });
+  container.appendChild(el('h3', {}, '3. Roof Pitch Calculator'));
+  container.appendChild(el('p', { class: 'desc' }, 'Convert between rise (inches per 12" run) and angle. Slope factor is the rafter-length multiplier per foot of run.'));
+
+  const rise = numberInput(6, { step: '0.25', min: '0', max: '24' });
+  const angle = numberInput(26.57, { step: '0.1', min: '0', max: '85' });
+
+  const out = el('div', { class: 'output' });
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'calc-svg');
+  svg.setAttribute('viewBox', '0 0 400 220');
+
+  let updating = false;
+
+  function recomputeFromRise() {
+    if (updating) return;
+    updating = true;
+    const r = parseFloat(rise.value) || 0;
+    const a = Math.atan2(r, 12) * 180 / Math.PI;
+    angle.value = a.toFixed(2);
+    updating = false;
+    render(r, a);
+  }
+
+  function recomputeFromAngle() {
+    if (updating) return;
+    updating = true;
+    const a = parseFloat(angle.value) || 0;
+    const r = Math.tan(a * Math.PI / 180) * 12;
+    rise.value = r.toFixed(2);
+    updating = false;
+    render(r, a);
+  }
+
+  function render(r, a) {
+    const slopeFactor = Math.sqrt(r * r + 144) / 12; // rafter inches per inch of run
+    const rafterPerFootOfRun = slopeFactor * 12; // inches per foot of run
+
+    out.innerHTML = '';
+    out.appendChild(makeCopyButton(() => copyText));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Pitch ratio'), el('span', { class: 'val' }, fmt(r, 2) + ' / 12')));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Angle'), el('span', { class: 'val' }, fmt(a, 2) + '°')));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Slope factor'), el('span', { class: 'val' }, fmt(slopeFactor, 4))));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Rafter / ft of run'), el('span', { class: 'val' }, fmt(rafterPerFootOfRun, 3) + '"')));
+    out.appendChild(el('div', { class: 'breakdown', html:
+      `<strong>Math:</strong><br>
+      Angle = arctan(${r.toFixed(2)} ÷ 12) = ${a.toFixed(2)}°<br>
+      Slope factor = √(rise² + 144) ÷ 12 = ${slopeFactor.toFixed(4)}<br>
+      Rafter length = run × slope factor (line length, no overhang)`
+    }));
+
+    drawRoofSvg(r, a);
+
+    var copyText = `Roof Pitch ${r.toFixed(2)}/12 (${a.toFixed(2)}°)\n` +
+      `Slope factor: ${slopeFactor.toFixed(4)}\n` +
+      `Rafter per foot of run: ${rafterPerFootOfRun.toFixed(3)}"`;
+  }
+
+  function drawRoofSvg(r, a) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const W = 400, H = 220, pad = 24;
+    const baseY = H - pad;
+    const baseX = pad + 20;
+    const runPx = W - 2 * pad - 40;
+    const risePx = Math.min(H - 2 * pad, runPx * (r / 12));
+
+    const tri = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    tri.setAttribute('points', `${baseX},${baseY} ${baseX + runPx},${baseY} ${baseX},${baseY - risePx}`);
+    tri.setAttribute('fill', 'rgba(212, 165, 116, 0.18)');
+    tri.setAttribute('stroke', '#d4a574');
+    tri.setAttribute('stroke-width', '1.5');
+    svg.appendChild(tri);
+
+    // Hypotenuse highlight (rafter)
+    const hyp = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    hyp.setAttribute('x1', baseX); hyp.setAttribute('y1', baseY - risePx);
+    hyp.setAttribute('x2', baseX + runPx); hyp.setAttribute('y2', baseY);
+    hyp.setAttribute('stroke', '#7fb069');
+    hyp.setAttribute('stroke-width', '2.5');
+    svg.appendChild(hyp);
+
+    // Labels
+    const t1 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t1.setAttribute('x', baseX + runPx / 2); t1.setAttribute('y', baseY + 14);
+    t1.setAttribute('fill', '#d4a574'); t1.setAttribute('font-size', '11'); t1.setAttribute('text-anchor', 'middle');
+    t1.textContent = 'Run (12")';
+    svg.appendChild(t1);
+
+    const t2 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t2.setAttribute('x', baseX - 6); t2.setAttribute('y', baseY - risePx / 2);
+    t2.setAttribute('fill', '#d4a574'); t2.setAttribute('font-size', '11'); t2.setAttribute('text-anchor', 'end');
+    t2.textContent = 'Rise ' + r.toFixed(1) + '"';
+    svg.appendChild(t2);
+
+    const t3 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t3.setAttribute('x', baseX + runPx / 2 + 8); t3.setAttribute('y', baseY - risePx / 2 - 6);
+    t3.setAttribute('fill', '#7fb069'); t3.setAttribute('font-size', '11');
+    t3.textContent = 'Rafter';
+    svg.appendChild(t3);
+
+    const t4 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t4.setAttribute('x', baseX + 26); t4.setAttribute('y', baseY - 4);
+    t4.setAttribute('fill', '#e8b988'); t4.setAttribute('font-size', '11');
+    t4.textContent = a.toFixed(1) + '°';
+    svg.appendChild(t4);
+  }
+
+  rise.addEventListener('input', recomputeFromRise);
+  angle.addEventListener('input', recomputeFromAngle);
+
+  const inputs = el('div', { class: 'input-group' },
+    field('Rise (inches per 12" run)', rise),
+    field('— or — angle in degrees', angle),
+    el('div', { class: 'disclaimer' }, 'Common pitches: 4/12 (low), 6/12 (medium), 8/12 (steep), 12/12 (45°). Below 2/12 typically requires special roofing.')
+  );
+  const outputCol = el('div', {}, out, svg);
+  container.appendChild(el('div', { class: 'calc-grid' }, inputs, outputCol));
+  recomputeFromRise();
+  return container;
+}
+
+/* ---------- Calculator: Board Foot ---------- */
+function buildBoardFoot() {
+  const container = el('div', { class: 'calc' });
+  container.appendChild(el('h3', {}, '4. Board Foot Calculator'));
+  container.appendChild(el('p', { class: 'desc' }, 'A board foot is 144 cubic inches of lumber (1" × 12" × 12"). Standard for hardwood pricing.'));
+
+  const thick = numberInput(1, { step: '0.25', min: '0.25', max: '12' });
+  const width = numberInput(6, { step: '0.25', min: '1', max: '24' });
+  const len = numberInput(8, { step: '0.5', min: '1', max: '20' });
+  const qty = numberInput(10, { step: '1', min: '1', max: '999' });
+  const rate = numberInput(4.50, { step: '0.05', min: '0', max: '100' });
+
+  const out = el('div', { class: 'output' });
+
+  function recompute() {
+    const t = parseFloat(thick.value) || 0;
+    const w = parseFloat(width.value) || 0;
+    const L = parseFloat(len.value) || 0;
+    const q = Math.max(1, parseInt(qty.value, 10) || 1);
+    const r = parseFloat(rate.value) || 0;
+
+    // Board feet per piece = (T × W × L_ft) / 12  with T,W in inches, L in feet
+    const bfPer = (t * w * L) / 12;
+    const totalBf = bfPer * q;
+    const cost = totalBf * r;
+
+    out.innerHTML = '';
+    out.appendChild(makeCopyButton(() => copyText));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Board feet per piece'), el('span', { class: 'val' }, fmt(bfPer, 3) + ' bf')));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Total board feet'), el('span', { class: 'val' }, fmt(totalBf, 2) + ' bf')));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Estimated cost'), el('span', { class: 'val' }, '$' + fmt(cost, 2))));
+    out.appendChild(el('div', { class: 'breakdown', html:
+      `<strong>Math:</strong><br>
+      Board feet = (T × W × L<sub>ft</sub>) ÷ 12 = (${t} × ${w} × ${L}) ÷ 12 = ${bfPer.toFixed(3)} bf<br>
+      Total = ${bfPer.toFixed(3)} × ${q} = ${totalBf.toFixed(2)} bf<br>
+      Cost = ${totalBf.toFixed(2)} bf × $${r.toFixed(2)}/bf = $${cost.toFixed(2)}`
+    }));
+
+    var copyText = `Board Foot Calculation\n` +
+      `${q} pcs × ${t}" × ${w}" × ${L} ft\n` +
+      `Per piece: ${bfPer.toFixed(3)} bf\n` +
+      `Total: ${totalBf.toFixed(2)} bf\n` +
+      `Estimated cost @ $${r.toFixed(2)}/bf: $${cost.toFixed(2)}`;
+  }
+
+  [thick, width, len, qty, rate].forEach(i => i.addEventListener('input', recompute));
+
+  const inputs = el('div', { class: 'input-group' },
+    field('Thickness (inches)', thick),
+    field('Width (inches)', width),
+    field('Length (feet)', len),
+    field('Quantity', qty),
+    field('Rate ($ / board foot)', rate)
+  );
+
+  container.appendChild(el('div', { class: 'calc-grid' }, inputs, out));
+  recompute();
+  return container;
+}
+
+/* ---------- Calculator: Span Table ---------- */
+const spanTables = {
+  // Maximum allowable spans in feet — based on IRC tables R502.3.1 (floor) and R802.5.1 (ceiling/rafter)
+  // These are rounded approximations of common values; verify with local code.
+  floor40: { // floor joists, 40 psf live + 10 psf dead, L/360
+    'SPF': { '2x6':  { 12: 10.75, 16: 9.75, 24: 8.5  },
+             '2x8':  { 12: 14.17, 16: 12.83, 24: 11.0 },
+             '2x10': { 12: 18.0,  16: 16.42, 24: 13.42 },
+             '2x12': { 12: 21.92, 16: 19.83, 24: 16.17 } },
+    'DF':  { '2x6':  { 12: 11.33, 16: 10.25, 24: 8.92 },
+             '2x8':  { 12: 14.92, 16: 13.5,  24: 11.75 },
+             '2x10': { 12: 19.0,  16: 17.25, 24: 14.5 },
+             '2x12': { 12: 23.0,  16: 20.92, 24: 17.08 } },
+    'SYP': { '2x6':  { 12: 11.17, 16: 10.17, 24: 8.83 },
+             '2x8':  { 12: 14.75, 16: 13.42, 24: 11.67 },
+             '2x10': { 12: 18.83, 16: 17.08, 24: 14.0  },
+             '2x12': { 12: 22.83, 16: 20.75, 24: 16.92 } },
+  },
+  ceiling20: { // ceiling joists, 20 psf live + 10 psf dead, L/240, no attic storage
+    'SPF': { '2x6':  { 12: 16.33, 16: 14.83, 24: 12.92 },
+             '2x8':  { 12: 21.5,  16: 19.5,  24: 17.0  },
+             '2x10': { 12: 26.5,  16: 24.08, 24: 21.0  },
+             '2x12': { 12: 31.5,  16: 28.58, 24: 24.92 } },
+    'DF':  { '2x6':  { 12: 17.17, 16: 15.58, 24: 13.58 },
+             '2x8':  { 12: 22.58, 16: 20.5,  24: 17.92 },
+             '2x10': { 12: 27.83, 16: 25.25, 24: 22.0  },
+             '2x12': { 12: 33.0,  16: 30.0,  24: 26.17 } },
+    'SYP': { '2x6':  { 12: 16.92, 16: 15.42, 24: 13.42 },
+             '2x8':  { 12: 22.33, 16: 20.25, 24: 17.67 },
+             '2x10': { 12: 27.5,  16: 24.92, 24: 21.67 },
+             '2x12': { 12: 32.67, 16: 29.67, 24: 25.83 } },
+  }
+};
+
+function buildSpanTable() {
+  const container = el('div', { class: 'calc' });
+  container.appendChild(el('h3', {}, '5. Span Table Quick Reference'));
+  container.appendChild(el('p', { class: 'desc' }, 'Maximum allowable spans for residential framing. Based on IRC tables R502.3.1 (floor joists) and R802.5.1 (ceiling joists).'));
+
+  const size = el('select', {},
+    el('option', { value: '2x6' }, '2x6'),
+    el('option', { value: '2x8', selected: 'selected' }, '2x8'),
+    el('option', { value: '2x10' }, '2x10'),
+    el('option', { value: '2x12' }, '2x12')
+  );
+  const species = el('select', {},
+    el('option', { value: 'SPF' }, 'SPF (Spruce-Pine-Fir)'),
+    el('option', { value: 'DF', selected: 'selected' }, 'Douglas Fir-Larch'),
+    el('option', { value: 'SYP' }, 'Southern Yellow Pine')
+  );
+  const spacing = el('select', {},
+    el('option', { value: '12' }, '12" OC'),
+    el('option', { value: '16', selected: 'selected' }, '16" OC'),
+    el('option', { value: '24' }, '24" OC')
+  );
+  const loadType = el('select', {},
+    el('option', { value: 'floor40' }, 'Floor — 40 psf live'),
+    el('option', { value: 'ceiling20' }, 'Ceiling — 20 psf live, no storage')
+  );
+
+  const out = el('div', { class: 'output' });
+
+  function recompute() {
+    const sz = size.value;
+    const sp = species.value;
+    const oc = parseInt(spacing.value, 10);
+    const lt = loadType.value;
+    const span = spanTables[lt]?.[sp]?.[sz]?.[oc];
+    const ftIn = isFinite(span) ? `${Math.floor(span)}' ${Math.round((span - Math.floor(span)) * 12)}"` : '—';
+
+    out.innerHTML = '';
+    out.appendChild(makeCopyButton(() => copyText));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Member'), el('span', { class: 'val' }, `${sz} ${sp}`)));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Spacing'), el('span', { class: 'val' }, oc + '" OC')));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Load case'), el('span', { class: 'val' }, lt === 'floor40' ? 'Floor 40 psf' : 'Ceiling 20 psf')));
+    out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Maximum span'), el('span', { class: 'val' }, isFinite(span) ? span.toFixed(2) + ' ft (' + ftIn + ')' : '—')));
+    out.appendChild(el('div', { class: 'disclaimer' }, 'Values are approximations of IRC prescriptive tables. Always verify with your local building code and a structural professional for unusual loads or configurations.'));
+
+    var copyText = `Span Table — ${sz} ${sp} @ ${oc}" OC, ${lt === 'floor40' ? 'Floor 40 psf' : 'Ceiling 20 psf'}\n` +
+      `Maximum span: ${isFinite(span) ? span.toFixed(2) + ' ft (' + ftIn + ')' : '—'}`;
+  }
+
+  [size, species, spacing, loadType].forEach(i => i.addEventListener('change', recompute));
+
+  const inputs = el('div', { class: 'input-group' },
+    field('Lumber size', size),
+    field('Species group', species),
+    field('Spacing', spacing),
+    field('Load type', loadType)
+  );
+
+  container.appendChild(el('div', { class: 'calc-grid' }, inputs, out));
+  recompute();
+  return container;
+}
+
+/* ---------- Mount Calculators ---------- */
+const calcRoot = document.getElementById('calculators-root');
+calcRoot.appendChild(buildLumberEstimator());
+calcRoot.appendChild(buildStairCalculator());
+calcRoot.appendChild(buildRoofPitch());
+calcRoot.appendChild(buildBoardFoot());
+calcRoot.appendChild(buildSpanTable());
 </script>
 
 </body>
