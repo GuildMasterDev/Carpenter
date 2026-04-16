@@ -1,6 +1,6 @@
 {
   "name": "carpenter",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Carpenter — interactive construction carpentry resource and tool suite. Single index.html, vanilla JS, no dependencies. Runs in any browser, as a PWA, or as an Electron desktop app.",
   "main": "main.js",
   "homepage": "https://guildmasterdev.github.io/Carpenter",

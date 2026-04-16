@@ -4,6 +4,11 @@ An interactive construction carpentry resource and tool suite. Reference guides,
 
 **Live demo:** https://guildmasterdev.github.io/Carpenter
 
+Run it three ways:
+- **In any browser** — open `index.html`, no server needed
+- **As a desktop app** — Electron wrapper for macOS / Windows / Linux
+- **As a PWA** — install from the live demo for full offline use on desktop or mobile
+
 ## Features
 
 - **Resources** — curated, categorized references on framing, joinery, roofing, decks & stairs, and tools
@@ -24,11 +29,34 @@ An interactive construction carpentry resource and tool suite. Reference guides,
 - Plain HTML + inline CSS
 - Inline SVG for diagrams
 - No build system, no npm dependencies at runtime
-- Deployed via GitHub Pages
+- Optional Electron wrapper (dev-time only)
+- Service worker for PWA / offline use
 
-## Usage
+## Run in a browser
 
-Open `index.html` in any modern browser. That's it.
+Just open `index.html` in any modern browser. That's it.
+
+## Run as a desktop app (Electron)
+
+```sh
+npm install
+npm start
+```
+
+Builds installers/packages for the current platform with `electron-builder`:
+
+```sh
+npm run dist          # current platform
+npm run dist:mac      # macOS dmg + zip (x64 + arm64)
+npm run dist:win      # Windows nsis + portable (x64)
+npm run dist:linux    # Linux AppImage + deb (x64)
+```
+
+Output lands in `dist/`.
+
+## Install as a PWA
+
+Visit the [live demo](https://guildmasterdev.github.io/Carpenter) in a Chromium-based browser or Safari, then use your browser's "Install app" / "Add to Home Screen" option. After the first visit Carpenter caches itself and works fully offline.
 
 ## Disclaimer
 
