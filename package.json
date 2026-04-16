@@ -1,8 +1,8 @@
 {
   "name": "carpenter",
   "version": "1.0.0",
-  "description": "Carpenter — interactive construction carpentry resource and tool suite. Single index.html, vanilla JS, no dependencies.",
-  "main": "index.html",
+  "description": "Carpenter — interactive construction carpentry resource and tool suite. Single index.html, vanilla JS, no dependencies. Runs in any browser, as a PWA, or as an Electron desktop app.",
+  "main": "main.js",
   "homepage": "https://guildmasterdev.github.io/Carpenter",
   "repository": {
     "type": "git",
@@ -11,14 +11,65 @@
   "bugs": {
     "url": "https://github.com/GuildMasterDev/Carpenter/issues"
   },
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
+  },
   "keywords": [
     "carpentry",
     "construction",
     "framing",
     "calculator",
     "irc",
-    "vanilla-js"
+    "vanilla-js",
+    "electron",
+    "pwa"
   ],
   "author": "GuildMasterDev",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^41.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "dev.guildmaster.carpenter",
+    "productName": "Carpenter",
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "manifest.json",
+      "sw.js",
+      "icons/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "icons/icon.icns",
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] },
+        { "target": "zip", "arch": ["x64", "arm64"] }
+      ]
+    },
+    "win": {
+      "icon": "icons/icon.ico",
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "linux": {
+      "category": "Utility",
+      "icon": "icons/icon-512.png",
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] },
+        { "target": "deb", "arch": ["x64"] }
+      ]
+    }
+  }
 }

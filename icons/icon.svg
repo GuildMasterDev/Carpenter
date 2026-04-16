@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d1d28"/>
+      <stop offset="1" stop-color="#0a0a0f"/>
+    </linearGradient>
+    <linearGradient id="blade" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8b988"/>
+      <stop offset="1" stop-color="#d4a574"/>
+    </linearGradient>
+    <linearGradient id="handle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8b5a2b"/>
+      <stop offset="1" stop-color="#5a3a1c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- Saw blade -->
+  <g transform="translate(64 152)">
+    <rect x="0" y="40" width="384" height="60" rx="6" fill="url(#blade)" stroke="#8d6f4d" stroke-width="3"/>
+    <!-- Teeth -->
+    <path d="M8 100 L24 140 L40 100 L56 140 L72 100 L88 140 L104 100 L120 140 L136 100 L152 140 L168 100 L184 140 L200 100 L216 140 L232 100 L248 140 L264 100 L280 140 L296 100 L312 140 L328 100 L344 140 L360 100 L376 140 L384 100 Z"
+          fill="url(#blade)" stroke="#8d6f4d" stroke-width="3" stroke-linejoin="round"/>
+    <!-- Bolt holes -->
+    <circle cx="40" cy="70" r="6" fill="#1d1d28"/>
+    <circle cx="100" cy="70" r="6" fill="#1d1d28"/>
+    <circle cx="160" cy="70" r="6" fill="#1d1d28"/>
+
+    <!-- Handle -->
+    <path d="M-40 10 L48 10 Q56 10 56 18 L56 122 Q56 130 48 130 L-12 130 Q-44 130 -44 98 L-44 42 Q-44 10 -12 10 Z"
+          fill="url(#handle)" stroke="#3a2510" stroke-width="3" stroke-linejoin="round"/>
+    <ellipse cx="-12" cy="70" rx="22" ry="34" fill="#1d1d28" stroke="#3a2510" stroke-width="3"/>
+  </g>
+
+  <!-- Wood-grain accent at bottom -->
+  <g opacity="0.35" stroke="#3a2a1a" stroke-width="2" fill="none">
+    <path d="M64 380 Q160 372 256 380 T448 380"/>
+    <path d="M64 405 Q160 396 256 405 T448 405"/>
+    <path d="M64 430 Q160 422 256 430 T448 430"/>
+  </g>
+
+  <text x="256" y="475" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="42" font-weight="800" fill="#d4a574" text-anchor="middle" letter-spacing="2">CARPENTER</text>
+</svg>
