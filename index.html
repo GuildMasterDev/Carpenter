@@ -1272,6 +1272,153 @@ calcRoot.appendChild(buildStairCalculator());
 calcRoot.appendChild(buildRoofPitch());
 calcRoot.appendChild(buildBoardFoot());
 calcRoot.appendChild(buildSpanTable());
+
+/* ---------- Reference Tables ---------- */
+function refSection(title, desc, table) {
+  const wrap = el('div', { class: 'ref-section' });
+  wrap.appendChild(el('h3', {}, title));
+  if (desc) wrap.appendChild(el('p', { class: 'desc' }, desc));
+  wrap.appendChild(table);
+  return wrap;
+}
+
+function buildTable(headers, rows) {
+  const t = el('table', { class: 'ref-table' });
+  const thead = el('thead');
+  const trh = el('tr');
+  headers.forEach(h => trh.appendChild(el('th', {}, h)));
+  thead.appendChild(trh);
+  t.appendChild(thead);
+  const tbody = el('tbody');
+  rows.forEach(r => {
+    const tr = el('tr');
+    r.forEach((c, i) => {
+      const isNum = typeof c === 'number' || /^[\d\.\-/"× ]+$/.test(String(c));
+      tr.appendChild(el('td', { class: isNum && i > 0 ? 'num' : '' }, String(c)));
+    });
+    tbody.appendChild(tr);
+  });
+  t.appendChild(tbody);
+  return t;
+}
+
+const refRoot = document.getElementById('reference-root');
+
+// Nail Schedule (IRC R602.3(1) — common selections)
+refRoot.appendChild(refSection(
+  'Nail Schedule',
+  'Common IRC nailing requirements for residential framing (R602.3(1)). Use the smaller spacing if your jurisdiction is in a high-wind or seismic zone.',
+  buildTable(
+    ['Connection', 'Nail Type & Size', 'Spacing / Quantity'],
+    [
+      ['Top plate to stud (end nail)',     '2 × 16d common',          '—'],
+      ['Stud to sole plate (toe nail)',    '4 × 8d  or 3 × 16d',      '—'],
+      ['Double studs',                      '10d common',              '24" OC face nail'],
+      ['Double top plates (face nail)',    '10d common',              '24" OC'],
+      ['Double top plates (lap splice)',   '8 × 16d common',          'each side of splice'],
+      ['Sole plate to joist/blocking',     '16d common',              '16" OC'],
+      ['Header to header',                  '16d common',              '16" OC each edge'],
+      ['Wall sheathing (1/2" OSB/ply)',    '6d common (or 8d box)',   '6" edge / 12" field'],
+      ['Roof sheathing (1/2"–5/8")',       '8d common',               '6" edge / 12" field'],
+      ['Subfloor (3/4" T&G)',              '8d ring-shank or 10d',    '6" edge / 12" field, glue + nail'],
+      ['Joist to sill / girder (toe nail)','3 × 8d common',           '—'],
+      ['Rafter / ceiling joist to plate',  '3 × 10d common',          '+ hurricane tie'],
+      ['Ridge board to rafter',            '3 × 10d common',          'end nail or 4 × 16d toe nail'],
+    ]
+  )
+));
+
+// Lumber Dimensions
+refRoot.appendChild(refSection(
+  'Lumber Dimensions — Nominal vs Actual',
+  'Standard surfaced (S4S) softwood dimensional lumber. The nominal size is the rough-cut size before drying and planing.',
+  buildTable(
+    ['Nominal', 'Actual (in)', 'Actual (mm)'],
+    [
+      ['1×2',  '¾ × 1½',     '19 × 38'],
+      ['1×3',  '¾ × 2½',     '19 × 64'],
+      ['1×4',  '¾ × 3½',     '19 × 89'],
+      ['1×6',  '¾ × 5½',     '19 × 140'],
+      ['1×8',  '¾ × 7¼',     '19 × 184'],
+      ['1×10', '¾ × 9¼',     '19 × 235'],
+      ['1×12', '¾ × 11¼',    '19 × 286'],
+      ['2×2',  '1½ × 1½',    '38 × 38'],
+      ['2×3',  '1½ × 2½',    '38 × 64'],
+      ['2×4',  '1½ × 3½',    '38 × 89'],
+      ['2×6',  '1½ × 5½',    '38 × 140'],
+      ['2×8',  '1½ × 7¼',    '38 × 184'],
+      ['2×10', '1½ × 9¼',    '38 × 235'],
+      ['2×12', '1½ × 11¼',   '38 × 286'],
+      ['4×4',  '3½ × 3½',    '89 × 89'],
+      ['4×6',  '3½ × 5½',    '89 × 140'],
+      ['6×6',  '5½ × 5½',    '140 × 140'],
+    ]
+  )
+));
+
+// Common Angles
+refRoot.appendChild(refSection(
+  'Common Angles in Carpentry',
+  'Where these angles show up on the job — set up your speed square or miter saw against the table.',
+  buildTable(
+    ['Angle', 'Pitch (rise/12)', 'Where you see it'],
+    [
+      ['22.5°', '4.97 / 12', 'Octagon miter; some hip jacks'],
+      ['26.57°', '6 / 12', 'Common 6/12 roof pitch'],
+      ['30°', '6.93 / 12', 'Hexagon miter; moderate roof'],
+      ['33.69°', '8 / 12', 'Common 8/12 roof pitch'],
+      ['45°', '12 / 12', 'Picture-frame miter; equal-pitch valley plumb cut'],
+      ['60°', '20.78 / 12', 'Triangular gable detailing'],
+      ['67.5°', '— ', 'Octagon corner inside (180° − 2×22.5°)'],
+      ['90°', '— ', 'Square cut, butt joint, plumb cut on 12/12 rafter'],
+    ]
+  )
+));
+
+// Fasteners
+refRoot.appendChild(refSection(
+  'Fastener Guide',
+  'Choosing the right fastener — load direction, environment, and reversibility all matter.',
+  buildTable(
+    ['Fastener', 'Best for', 'Notes / Load'],
+    [
+      ['Common nails',      'Framing — high shear loads', '16d common: ~140 lb single-shear in SPF (NDS)'],
+      ['Box nails',         'Sheathing where splitting is a concern', 'Thinner shank, ~80% of common nail capacity'],
+      ['Sinker nails',      'Framing alternative to common', 'Coated shank, slightly smaller diameter'],
+      ['Ring-shank nails',  'Subfloor, decking, sheathing', '~50% more withdrawal resistance vs smooth shank'],
+      ['Wood screws',       'Cabinetry, trim, anything reversible', 'Better tension; weaker in shear than equivalent nail'],
+      ['Construction screws (GRK, SPAX, etc.)', 'Structural framing, decks, ledgers (per ESR)', 'Match the ICC-ES report — not all "deck screws" are structural'],
+      ['Lag screws / bolts','Ledger boards, post bases, hangers', '½" lag in DF withdrawal ~250 lb/in penetration'],
+      ['Through-bolts',     'Ledgers to rim joist, post-to-beam', 'Most reliable when both sides are accessible'],
+      ['Joist hangers (Simpson LUS, etc.)', 'Joist-to-ledger, joist-to-beam', 'Use the manufacturer\'s specified nails — N10 or SD'],
+      ['Hurricane ties (H1, H2.5)', 'Rafter/truss to top plate uplift', '~415–500 lb uplift each, depends on model'],
+      ['Post bases (ABU, CB)', 'Post-to-concrete with standoff', 'Standoff prevents end-grain rot'],
+      ['Powder-actuated pins', 'Sole plate to concrete slab', '~24" OC; not for shear walls (use anchor bolts)'],
+    ]
+  )
+));
+
+// Wood Species
+refRoot.appendChild(refSection(
+  'Wood Species Comparison',
+  'Common North American structural and finish species. Strength values are relative; rot resistance assumes untreated heartwood.',
+  buildTable(
+    ['Species', 'Strength', 'Rot resistance', 'Cost', 'Common uses'],
+    [
+      ['SPF (Spruce-Pine-Fir)',     'Moderate',  'Poor',          '$',     'Interior wall framing, trusses, stock 2x lumber'],
+      ['Douglas Fir-Larch',         'High',      'Poor–moderate', '$$',    'Beams, posts, joists, rafters; West Coast standard'],
+      ['Southern Yellow Pine (SYP)','High',      'Poor (sapwood)','$$',    'Joists, trusses, base for PT lumber'],
+      ['Hem-Fir',                    'Moderate',  'Poor',          '$',     'Framing where DF unavailable; PNW market'],
+      ['Western Red Cedar',         'Low–moderate','Excellent',   '$$$',   'Siding, trim, decking, fences, soffits'],
+      ['Redwood',                    'Moderate',  'Excellent',     '$$$$',  'Decks, outdoor furniture (regional, sustainability-limited)'],
+      ['Pressure-Treated SYP',      'High',      'Excellent (treated)','$$', 'Sill plates, decks, ground-contact framing'],
+      ['White Oak',                  'Very high', 'Excellent',     '$$$$',  'Boatbuilding, exterior trim, high-end joinery'],
+      ['Red Oak',                    'Very high', 'Poor',          '$$$',   'Interior trim, flooring, furniture (not exterior)'],
+      ['Hard Maple',                 'Very high', 'Poor',          '$$$',   'Flooring, butcher block, cabinet faces'],
+      ['Poplar',                     'Moderate',  'Poor',          '$$',    'Paint-grade trim, drawer sides'],
+    ]
+  )
+));
 </script>
 
 </body>
