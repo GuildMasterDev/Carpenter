@@ -460,6 +460,80 @@
   }
   .materials-list.show { display: block; }
 
+  .openings-table {
+    margin-top: 16px;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  .openings-table th, .openings-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .openings-table th {
+    color: var(--text-dim);
+    font-weight: 500;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .openings-table input, .openings-table select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    width: 100%;
+    font-family: inherit;
+  }
+  .openings-table input:focus, .openings-table select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .openings-table .col-pos { width: 16%; }
+  .openings-table .col-w { width: 14%; }
+  .openings-table .col-h { width: 14%; }
+  .openings-table .col-sill { width: 14%; }
+  .openings-table .col-type { width: 18%; }
+  .openings-table .col-del { width: 8%; text-align: right; }
+  .icon-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 26px; height: 26px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    transition: all 0.15s ease;
+  }
+  .icon-btn:hover { color: var(--bad); border-color: var(--bad); }
+  .icon-btn.add:hover { color: var(--good); border-color: var(--good); }
+
+  .demo-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  /* SVG framing member styles */
+  #framing-svg .fm-plate { fill: #8b5a2b; stroke: #5a3a1c; stroke-width: 0.4; }
+  #framing-svg .fm-stud { fill: #d4a574; stroke: #8d6f4d; stroke-width: 0.3; }
+  #framing-svg .fm-king { fill: #7fb069; stroke: #4f7a3f; stroke-width: 0.3; }
+  #framing-svg .fm-trimmer { fill: #5b9bd5; stroke: #2f6293; stroke-width: 0.3; }
+  #framing-svg .fm-header { fill: #c45b5b; stroke: #7a2e2e; stroke-width: 0.4; }
+  #framing-svg .fm-cripple { fill: #888; stroke: #555; stroke-width: 0.3; }
+  #framing-svg .fm-sill { fill: #b58860; stroke: #6e4f31; stroke-width: 0.3; }
+  #framing-svg .fm-opening { fill: rgba(255,255,255,0.55); stroke: #444; stroke-width: 0.3; stroke-dasharray: 1,1; }
+  #framing-svg rect { transition: filter 0.1s ease; }
+  #framing-svg rect.fm:hover { filter: brightness(1.25); cursor: crosshair; }
+  #framing-svg .dim-line { stroke: #444; stroke-width: 0.3; }
+  #framing-svg .dim-text { fill: #333; font-size: 6px; font-family: ui-monospace, Menlo, monospace; }
+  #framing-svg .opening-label { fill: #333; font-size: 6px; font-family: ui-monospace, Menlo, monospace; text-anchor: middle; }
+
   footer.site-footer {
     text-align: center;
     padding: 24px 16px;
@@ -1398,6 +1472,8 @@ refRoot.appendChild(refSection(
   )
 ));
 
+// (visualizer mounted at end of script)
+
 // Wood Species
 refRoot.appendChild(refSection(
   'Wood Species Comparison',
@@ -1419,6 +1495,454 @@ refRoot.appendChild(refSection(
     ]
   )
 ));
+
+/* ---------- Wall Framing Visualizer ---------- */
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs = {}) {
+  const n = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v != null) n.setAttribute(k, v);
+  }
+  return n;
+}
+
+const tooltipEl = document.getElementById('tooltip');
+function attachTooltip(node, text) {
+  node.addEventListener('mouseenter', () => {
+    tooltipEl.innerHTML = text;
+    tooltipEl.classList.add('show');
+  });
+  node.addEventListener('mousemove', (e) => {
+    let x = e.clientX + 14, y = e.clientY + 14;
+    const tw = tooltipEl.offsetWidth, th = tooltipEl.offsetHeight;
+    if (x + tw > window.innerWidth - 8) x = e.clientX - tw - 14;
+    if (y + th > window.innerHeight - 8) y = e.clientY - th - 14;
+    tooltipEl.style.left = x + 'px';
+    tooltipEl.style.top = y + 'px';
+  });
+  node.addEventListener('mouseleave', () => {
+    tooltipEl.classList.remove('show');
+  });
+}
+
+function computeFraming(cfg) {
+  const L = cfg.wallLength * 12;     // wall length in inches
+  const H = cfg.wallHeight * 12;     // wall height in inches
+  const oc = cfg.spacing;
+  const headerHeight = 6;            // doubled 2x6 + ½" plywood spacer ≈ 6"
+  const members = [];
+
+  // Plates
+  members.push({ kind: 'plate', name: 'Top Plate (cap)', size: '2×4', purpose: 'Caps the wall; provides a continuous surface for joist/rafter bearing.', x: 0, y: 0, w: L, h: 1.5 });
+  members.push({ kind: 'plate', name: 'Double Top Plate', size: '2×4', purpose: 'Lapped at corners to tie wall segments together; distributes point loads.', x: 0, y: 1.5, w: L, h: 1.5 });
+  members.push({ kind: 'plate', name: 'Bottom Plate (Sole)', size: '2×4 (PT if on slab)', purpose: 'Anchors the wall to the floor or foundation.', x: 0, y: H - 1.5, w: L, h: 1.5 });
+
+  const studTopY = 3.0;
+  const studBottomY = H - 1.5;
+  const studHeight = studBottomY - studTopY;
+
+  // Process openings
+  const openings = (cfg.openings || []).map(op => {
+    const x0 = Math.max(3, Math.min(L - op.width - 3, op.position * 12));
+    const sill = op.type === 'window' ? Math.max(0, Math.min(H - 6 - op.height - headerHeight, op.sillHeight)) : 0;
+    return { ...op, x0, x1: x0 + op.width, sillH: sill };
+  });
+
+  // Common studs at OC, skipping any that would land inside king-stud zone
+  const commonStudXs = [];
+  for (let x = 0; x <= L - 1.5 + 0.01; x += oc) {
+    let skip = false;
+    for (const op of openings) {
+      // Skip if stud lies within (kingLeftX) to (kingRightX + 1.5)
+      const kL = op.x0 - 3, kR = op.x1 + 3;
+      if (x + 1.5 > kL && x < kR) { skip = true; break; }
+    }
+    if (!skip) commonStudXs.push(x);
+  }
+  // Ensure end stud at far right edge
+  const endX = L - 1.5;
+  if (endX > 0) {
+    let inOp = false;
+    for (const op of openings) {
+      if (endX + 1.5 > op.x0 - 3 && endX < op.x1 + 3) { inOp = true; break; }
+    }
+    if (!inOp && !commonStudXs.some(x => Math.abs(x - endX) < 0.5)) commonStudXs.push(endX);
+  }
+  for (const x of commonStudXs) {
+    const isEdge = (x < 0.01) || (Math.abs(x - endX) < 0.5);
+    members.push({
+      kind: 'stud',
+      name: isEdge ? 'End Stud' : 'Common Stud',
+      size: '2×4',
+      purpose: isEdge ? 'Terminates the wall and provides nailing at the corner.' : `Vertical load path at ${oc}" OC; provides nailing for sheathing and drywall.`,
+      x, y: studTopY, w: 1.5, h: studHeight
+    });
+  }
+
+  // Per-opening framing
+  for (const op of openings) {
+    const headerBottomY = H - 1.5 - op.height - op.sillH;
+    const headerTopY = headerBottomY - headerHeight;
+    const headerSize = op.width <= 36 ? 'Doubled 2×6 + ½" ply' : op.width <= 60 ? 'Doubled 2×8 + ½" ply' : 'Doubled 2×10 / LVL';
+    const trimmerH = studBottomY - headerBottomY;
+
+    // King studs (full height)
+    members.push({ kind: 'king', name: 'King Stud', size: '2×4', purpose: 'Full-height stud against the trimmer; resists lateral forces on the header.', x: op.x0 - 3, y: studTopY, w: 1.5, h: studHeight });
+    members.push({ kind: 'king', name: 'King Stud', size: '2×4', purpose: 'Full-height stud against the trimmer; resists lateral forces on the header.', x: op.x1 + 1.5, y: studTopY, w: 1.5, h: studHeight });
+
+    // Trimmer (jack) studs — bear the header
+    members.push({ kind: 'trimmer', name: 'Trimmer (Jack) Stud', size: '2×4', purpose: 'Carries the header load down to the bottom plate; defines the rough opening width.', x: op.x0 - 1.5, y: headerBottomY, w: 1.5, h: trimmerH });
+    members.push({ kind: 'trimmer', name: 'Trimmer (Jack) Stud', size: '2×4', purpose: 'Carries the header load down to the bottom plate; defines the rough opening width.', x: op.x1, y: headerBottomY, w: 1.5, h: trimmerH });
+
+    // Header
+    members.push({ kind: 'header', name: 'Header', size: headerSize, purpose: `Spans the ${op.type} opening (${op.width}" RO) and transfers loads above to the trimmer studs.`, x: op.x0 - 1.5, y: headerTopY, w: op.width + 3, h: headerHeight });
+
+    // Cripples above header
+    for (const x of commonStudXs.concat([])) {
+      // Use OC layout but include any x that falls inside opening's RO horizontal span
+    }
+    for (let x = 0; x <= L - 1.5 + 0.01; x += oc) {
+      if (x > op.x0 - 1.5 && x + 1.5 <= op.x1 + 1.5) {
+        members.push({ kind: 'cripple', name: 'Cripple Stud (above)', size: '2×4', purpose: 'Short stud above the header; maintains the OC stud layout for sheathing and drywall.', x, y: studTopY, w: 1.5, h: headerTopY - studTopY });
+      }
+    }
+
+    // Window: rough sill + bottom cripples
+    if (op.type === 'window') {
+      const sillTopY = H - 1.5 - op.sillH;
+      const sillBottomY = sillTopY + 1.5;
+      members.push({ kind: 'sill', name: 'Rough Sill', size: '2×4', purpose: 'Plate at the bottom of the window RO; carries the sill cripples.', x: op.x0, y: sillTopY, w: op.width, h: 1.5 });
+      for (let x = 0; x <= L - 1.5 + 0.01; x += oc) {
+        if (x > op.x0 - 1.5 && x + 1.5 <= op.x1 + 1.5) {
+          members.push({ kind: 'cripple', name: 'Cripple Stud (below sill)', size: '2×4', purpose: 'Short stud below the rough sill; supports sill and continues the OC layout.', x, y: sillBottomY, w: 1.5, h: studBottomY - sillBottomY });
+        }
+      }
+    }
+  }
+
+  return { members, openings, L, H, headerHeight, oc };
+}
+
+function buildVisualizer() {
+  const root = document.getElementById('demo-root');
+
+  // Defaults
+  const state = {
+    wallLength: 16,   // ft
+    wallHeight: 8,    // ft
+    spacing: 16,      // inches OC
+    openings: [
+      { type: 'door',   position: 2,  width: 38, height: 82, sillHeight: 0  },
+      { type: 'window', position: 8,  width: 38, height: 38, sillHeight: 36 },
+      { type: 'window', position: 12, width: 38, height: 38, sillHeight: 36 },
+    ],
+  };
+
+  // ---- Controls ----
+  const controls = el('div', { class: 'demo-controls' });
+  const ctrlGrid = el('div', { class: 'grid' });
+
+  const wallLenIn = numberInput(state.wallLength, { step: '0.5', min: '4', max: '40' });
+  const wallHtIn = numberInput(state.wallHeight, { step: '0.5', min: '7', max: '12' });
+  const spacingSel = el('select', {},
+    el('option', { value: '16' }, '16" OC'),
+    el('option', { value: '24' }, '24" OC')
+  );
+  spacingSel.value = String(state.spacing);
+
+  ctrlGrid.appendChild(field('Wall length (ft)', wallLenIn));
+  ctrlGrid.appendChild(field('Wall height (ft)', wallHtIn));
+  ctrlGrid.appendChild(field('Stud spacing', spacingSel));
+  controls.appendChild(ctrlGrid);
+
+  // Openings table
+  const openingsTable = el('table', { class: 'openings-table' });
+  const thead = el('thead');
+  thead.appendChild(el('tr', {},
+    el('th', { class: 'col-type' }, 'Type'),
+    el('th', { class: 'col-pos' }, 'Position from left (ft)'),
+    el('th', { class: 'col-w' }, 'RO width (in)'),
+    el('th', { class: 'col-h' }, 'RO height (in)'),
+    el('th', { class: 'col-sill' }, 'Sill ht (in)'),
+    el('th', { class: 'col-del' }, '')
+  ));
+  openingsTable.appendChild(thead);
+  const tbody = el('tbody');
+  openingsTable.appendChild(tbody);
+  controls.appendChild(openingsTable);
+
+  const toolbar = el('div', { class: 'demo-toolbar' });
+  const addDoorBtn = el('button', { class: 'btn ghost' }, '+ Add Door');
+  const addWinBtn = el('button', { class: 'btn ghost' }, '+ Add Window');
+  const matBtn = el('button', { class: 'btn' }, 'Materials List');
+  const resetBtn = el('button', { class: 'btn ghost' }, 'Reset');
+  toolbar.append(addDoorBtn, addWinBtn, matBtn, resetBtn);
+  controls.appendChild(toolbar);
+
+  root.appendChild(controls);
+
+  // ---- SVG canvas + legend + materials ----
+  const canvasWrap = el('div', { class: 'demo-canvas-wrap' });
+  const svg = svgEl('svg', { id: 'framing-svg' });
+  canvasWrap.appendChild(svg);
+
+  const legend = el('div', { class: 'legend' });
+  const legendItems = [
+    ['#8b5a2b', 'Plates (top, double top, bottom)'],
+    ['#d4a574', 'Common / End Studs'],
+    ['#7fb069', 'King Studs'],
+    ['#5b9bd5', 'Trimmer (Jack) Studs'],
+    ['#c45b5b', 'Headers'],
+    ['#888',    'Cripple Studs'],
+    ['#b58860', 'Rough Sill'],
+    ['rgba(255,255,255,0.55)', 'Rough Opening (door / window)'],
+  ];
+  for (const [color, label] of legendItems) {
+    const sw = el('span', { class: 'swatch' });
+    const box = el('span', { class: 'box' });
+    box.style.background = color;
+    sw.appendChild(box);
+    sw.appendChild(document.createTextNode(label));
+    legend.appendChild(sw);
+  }
+  canvasWrap.appendChild(legend);
+
+  const matList = el('div', { class: 'materials-list' });
+  canvasWrap.appendChild(matList);
+
+  root.appendChild(canvasWrap);
+
+  let visualizerLast = null;
+
+  // ---- State sync ----
+  function readState() {
+    state.wallLength = parseFloat(wallLenIn.value) || 16;
+    state.wallHeight = parseFloat(wallHtIn.value) || 8;
+    state.spacing = parseInt(spacingSel.value, 10) || 16;
+    // openings already mutated in place by row inputs
+  }
+
+  function renderRows() {
+    tbody.innerHTML = '';
+    state.openings.forEach((op, idx) => {
+      const tr = el('tr');
+      const typeSel = el('select', {},
+        el('option', { value: 'door' }, 'Door'),
+        el('option', { value: 'window' }, 'Window')
+      );
+      typeSel.value = op.type;
+      typeSel.addEventListener('change', () => {
+        op.type = typeSel.value;
+        if (op.type === 'door') {
+          op.height = 82; op.sillHeight = 0;
+        } else {
+          op.height = 38; op.sillHeight = 36;
+        }
+        renderRows();
+        render();
+      });
+
+      const posIn = numberInput(op.position, { step: '0.25', min: '0', max: '100' });
+      posIn.addEventListener('input', () => { op.position = parseFloat(posIn.value) || 0; render(); });
+
+      const wIn = numberInput(op.width, { step: '0.5', min: '12', max: '200' });
+      wIn.addEventListener('input', () => { op.width = parseFloat(wIn.value) || 36; render(); });
+
+      const hIn = numberInput(op.height, { step: '0.5', min: '12', max: '120' });
+      hIn.addEventListener('input', () => { op.height = parseFloat(hIn.value) || 36; render(); });
+
+      const sillIn = numberInput(op.sillHeight, { step: '0.5', min: '0', max: '120' });
+      if (op.type === 'door') { sillIn.disabled = true; sillIn.value = 0; }
+      sillIn.addEventListener('input', () => { op.sillHeight = parseFloat(sillIn.value) || 0; render(); });
+
+      const delBtn = el('button', { class: 'icon-btn', title: 'Remove opening' }, '×');
+      delBtn.addEventListener('click', () => {
+        state.openings.splice(idx, 1);
+        renderRows();
+        render();
+      });
+
+      tr.append(
+        el('td', { class: 'col-type' }, typeSel),
+        el('td', { class: 'col-pos' }, posIn),
+        el('td', { class: 'col-w' }, wIn),
+        el('td', { class: 'col-h' }, hIn),
+        el('td', { class: 'col-sill' }, sillIn),
+        el('td', { class: 'col-del' }, delBtn)
+      );
+      tbody.appendChild(tr);
+    });
+  }
+
+  function render() {
+    readState();
+    const { members, openings, L, H } = computeFraming(state);
+
+    // Set viewBox with padding for labels
+    const padL = 30, padR = 20, padT = 14, padB = 30;
+    const vbW = L + padL + padR;
+    const vbH = H + padT + padB;
+    svg.setAttribute('viewBox', `0 0 ${vbW} ${vbH}`);
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+    const wallG = svgEl('g', { transform: `translate(${padL}, ${padT})` });
+    svg.appendChild(wallG);
+
+    // Wall background outline
+    wallG.appendChild(svgEl('rect', { x: 0, y: 0, width: L, height: H, fill: '#efe3c8', stroke: '#5a3a1c', 'stroke-width': 0.5 }));
+
+    // Draw opening rectangles first (under members), so members overlap visually
+    for (const op of openings) {
+      const studTopY = 3.0, studBottomY = H - 1.5;
+      const opTopY = H - 1.5 - op.height - op.sillH;
+      wallG.appendChild(svgEl('rect', { class: 'fm-opening', x: op.x0, y: opTopY, width: op.width, height: op.height }));
+      // Label inside opening
+      const lbl = svgEl('text', { class: 'opening-label', x: op.x0 + op.width / 2, y: opTopY + op.height / 2 + 2 });
+      lbl.textContent = op.type === 'door' ? `DOOR ${op.width}"×${op.height}"` : `WIN ${op.width}"×${op.height}"`;
+      wallG.appendChild(lbl);
+    }
+
+    // Draw members
+    for (const m of members) {
+      const r = svgEl('rect', { class: 'fm fm-' + m.kind, x: m.x, y: m.y, width: m.w, height: m.h });
+      attachTooltip(r, `<strong>${m.name}</strong><br>${m.size}<br><span style="color:#9a9486">${m.purpose}</span>`);
+      wallG.appendChild(r);
+    }
+
+    // Dimension lines: bottom horizontal (overall length)
+    const dimY = H + 12;
+    wallG.appendChild(svgEl('line', { class: 'dim-line', x1: 0, y1: dimY, x2: L, y2: dimY }));
+    wallG.appendChild(svgEl('line', { class: 'dim-line', x1: 0, y1: dimY - 3, x2: 0, y2: dimY + 3 }));
+    wallG.appendChild(svgEl('line', { class: 'dim-line', x1: L, y1: dimY - 3, x2: L, y2: dimY + 3 }));
+    const lblHoriz = svgEl('text', { class: 'dim-text', x: L / 2, y: dimY + 8, 'text-anchor': 'middle' });
+    lblHoriz.textContent = `${state.wallLength}'-0"  (${L}")`;
+    wallG.appendChild(lblHoriz);
+
+    // Vertical dim (left side)
+    const dimX = -8;
+    wallG.appendChild(svgEl('line', { class: 'dim-line', x1: dimX, y1: 0, x2: dimX, y2: H }));
+    wallG.appendChild(svgEl('line', { class: 'dim-line', x1: dimX - 3, y1: 0, x2: dimX + 3, y2: 0 }));
+    wallG.appendChild(svgEl('line', { class: 'dim-line', x1: dimX - 3, y1: H, x2: dimX + 3, y2: H }));
+    const lblVert = svgEl('text', { class: 'dim-text', x: dimX - 4, y: H / 2, 'text-anchor': 'end', transform: `rotate(-90 ${dimX - 4} ${H / 2})` });
+    lblVert.textContent = `${state.wallHeight}'-0"  (${H}")`;
+    wallG.appendChild(lblVert);
+
+    // Per-opening width dims (across the middle of each RO)
+    for (const op of openings) {
+      const opDimY = H - 1.5 - (op.sillH || 0) - op.height / 2;
+      wallG.appendChild(svgEl('line', { class: 'dim-line', x1: op.x0, y1: opDimY, x2: op.x1, y2: opDimY, 'stroke-dasharray': '0.5,0.5' }));
+    }
+
+    // Cache last computed for materials list
+    visualizerLast = { members, openings, L, H, state: { ...state, openings: state.openings.map(o => ({ ...o })) } };
+  }
+
+  function generateMaterials() {
+    if (!visualizerLast) return;
+    const { members, L, H, state: s } = visualizerLast;
+    const wallHtIn = H;
+    const studLenIn = wallHtIn - 1.5 - 3; // bottom plate + double top plate
+    const studLenFt = studLenIn / 12;
+
+    const counts = {};
+    for (const m of members) {
+      const k = `${m.name} — ${m.size}`;
+      if (!counts[k]) counts[k] = { count: 0, sample: m, totalLen: 0 };
+      counts[k].count += 1;
+      counts[k].totalLen += (m.kind === 'plate' || m.kind === 'header' || m.kind === 'sill') ? m.w : m.h;
+    }
+
+    const lines = [];
+    lines.push(`MATERIALS LIST — ${s.wallLength}' × ${s.wallHeight}' wall, ${s.spacing}" OC`);
+    lines.push(`${s.openings.length} opening(s): ` + s.openings.map(o => `${o.type} ${o.width}"×${o.height}"`).join(', '));
+    lines.push('');
+    lines.push('STOCK CUT LIST');
+    lines.push('-'.repeat(48));
+
+    // Plates
+    const totalPlateLF = (L * 3) / 12; // top + double top + bottom
+    lines.push(`Plate stock (2×4):           ${totalPlateLF.toFixed(2)} linear ft`);
+    lines.push(`  • Top plate:               ${(L/12).toFixed(2)} ft  × 1`);
+    lines.push(`  • Double top plate:        ${(L/12).toFixed(2)} ft  × 1`);
+    lines.push(`  • Bottom plate (PT if slab): ${(L/12).toFixed(2)} ft × 1`);
+    lines.push('');
+
+    // Studs
+    const studGroups = members.filter(m => ['stud','king','trimmer','cripple'].includes(m.kind));
+    const byName = {};
+    for (const m of studGroups) {
+      const key = `${m.name} (${m.h.toFixed(1)}" long, 2×4)`;
+      byName[key] = (byName[key] || 0) + 1;
+    }
+    lines.push('STUDS (2×4)');
+    Object.entries(byName).forEach(([k, n]) => {
+      lines.push(`  ${k.padEnd(42)} × ${n}`);
+    });
+    lines.push('');
+
+    // Headers
+    const headers = members.filter(m => m.kind === 'header');
+    if (headers.length) {
+      lines.push('HEADERS');
+      headers.forEach((h, i) => {
+        lines.push(`  Header ${i+1}: ${h.size}, ${h.w.toFixed(1)}" long`);
+      });
+      lines.push('');
+    }
+
+    // Sills
+    const sills = members.filter(m => m.kind === 'sill');
+    if (sills.length) {
+      lines.push('ROUGH SILLS (2×4)');
+      sills.forEach((s2, i) => {
+        lines.push(`  Sill ${i+1}: ${s2.w.toFixed(1)}" long`);
+      });
+      lines.push('');
+    }
+
+    lines.push('-'.repeat(48));
+    lines.push(`Total members: ${members.length}`);
+    lines.push('Note: Add 5–10% waste; verify openings against actual door/window units.');
+
+    matList.innerHTML = '';
+    matList.appendChild(makeCopyButton(() => lines.join('\n')));
+    matList.appendChild(document.createTextNode(lines.join('\n')));
+    matList.classList.add('show');
+  }
+
+  // Wire events
+  [wallLenIn, wallHtIn, spacingSel].forEach(i => i.addEventListener('input', render));
+  spacingSel.addEventListener('change', render);
+
+  addDoorBtn.addEventListener('click', () => {
+    state.openings.push({ type: 'door', position: 2, width: 38, height: 82, sillHeight: 0 });
+    renderRows(); render();
+  });
+  addWinBtn.addEventListener('click', () => {
+    state.openings.push({ type: 'window', position: 4, width: 38, height: 38, sillHeight: 36 });
+    renderRows(); render();
+  });
+  matBtn.addEventListener('click', generateMaterials);
+  resetBtn.addEventListener('click', () => {
+    state.wallLength = 16; state.wallHeight = 8; state.spacing = 16;
+    state.openings = [
+      { type: 'door',   position: 2,  width: 38, height: 82, sillHeight: 0  },
+      { type: 'window', position: 8,  width: 38, height: 38, sillHeight: 36 },
+      { type: 'window', position: 12, width: 38, height: 38, sillHeight: 36 },
+    ];
+    wallLenIn.value = state.wallLength;
+    wallHtIn.value = state.wallHeight;
+    spacingSel.value = String(state.spacing);
+    matList.classList.remove('show');
+    renderRows(); render();
+  });
+
+  renderRows();
+  render();
+}
+
+buildVisualizer();
 </script>
 
 </body>
