@@ -6,8 +6,13 @@
 <title>Carpenter — Construction Carpentry Resources & Tools</title>
 <meta name="description" content="An interactive construction carpentry resource and tool suite: framing, joinery, calculators, span tables, and a live wall framing visualizer." />
 <meta name="author" content="GuildMasterDev" />
-<meta name="theme-color" content="#0a0a0f" />
+<meta name="theme-color" content="#d4a574" />
 <meta name="color-scheme" content="dark" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Carpenter" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
 
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Carpenter — Construction Carpentry Resources & Tools" />
@@ -1971,6 +1976,16 @@ function buildVisualizer() {
 }
 
 buildVisualizer();
+</script>
+
+<script>
+  // Register the service worker for PWA / offline support.
+  // Skipped on file:// (Electron's default loadFile protocol) where SWs are not supported.
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
 </script>
 
 </body>
