@@ -1,0 +1,24 @@
+{
+  "name": "carpenter",
+  "version": "1.0.0",
+  "description": "Carpenter — interactive construction carpentry resource and tool suite. Single index.html, vanilla JS, no dependencies.",
+  "main": "index.html",
+  "homepage": "https://guildmasterdev.github.io/Carpenter",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GuildMasterDev/Carpenter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GuildMasterDev/Carpenter/issues"
+  },
+  "keywords": [
+    "carpentry",
+    "construction",
+    "framing",
+    "calculator",
+    "irc",
+    "vanilla-js"
+  ],
+  "author": "GuildMasterDev",
+  "license": "MIT"
+}
