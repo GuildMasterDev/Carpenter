@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Carpenter — Construction Carpentry Resources & Tools</title>
+<meta name="description" content="An interactive construction carpentry resource and tool suite: framing, joinery, calculators, span tables, and a live wall framing visualizer." />
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-elev: #14141c;
+    --bg-elev-2: #1d1d28;
+    --border: #2a2a38;
+    --text: #e8e4dc;
+    --text-dim: #9a9486;
+    --accent: #d4a574;
+    --accent-bright: #e8b988;
+    --accent-dim: #8d6f4d;
+    --good: #7fb069;
+    --warn: #e0a458;
+    --bad: #c45b5b;
+    --plate: #8b5a2b;
+    --stud: #d4a574;
+    --king: #7fb069;
+    --trimmer: #5b9bd5;
+    --header-color: #c45b5b;
+    --cripple: #888;
+    --sill: #b58860;
+    --shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+    --radius: 8px;
+    --radius-sm: 4px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); text-decoration: underline; }
+
+  header.site-header {
+    padding: 32px 24px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #15151f 0%, #0a0a0f 100%);
+  }
+
+  header.site-header h1 {
+    margin: 0 0 6px;
+    font-size: 2.4rem;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  header.site-header .subtitle {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    letter-spacing: 0.3px;
+  }
+
+  nav.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    padding: 16px 12px 0;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  nav.tabs button {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    padding: 12px 20px;
+    font-size: 0.98rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+
+  nav.tabs button:hover {
+    color: var(--text);
+    background: rgba(212, 165, 116, 0.06);
+  }
+
+  nav.tabs button.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  section.tab-panel {
+    display: none;
+    animation: fadeIn 0.25s ease;
+  }
+  section.tab-panel.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  h2.section-title {
+    margin: 8px 0 6px;
+    font-size: 1.6rem;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  p.section-blurb {
+    margin: 0 0 24px;
+    color: var(--text-dim);
+    max-width: 720px;
+  }
+
+  .category {
+    margin-bottom: 32px;
+  }
+
+  .category h3 {
+    margin: 0 0 12px;
+    color: var(--accent);
+    font-size: 1.2rem;
+    letter-spacing: 0.4px;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+
+  .card:hover {
+    border-color: var(--accent-dim);
+    transform: translateY(-1px);
+  }
+
+  .card .icon {
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+  }
+
+  .card h4 {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
+    color: var(--text);
+  }
+
+  .card p {
+    margin: 0 0 12px;
+    font-size: 0.92rem;
+    color: var(--text-dim);
+    flex: 1;
+  }
+
+  .card .learn {
+    align-self: flex-start;
+    font-size: 0.88rem;
+    font-weight: 500;
+  }
+
+  /* Calculators */
+  .calc {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 22px;
+  }
+  .calc h3 {
+    margin: 0 0 4px;
+    color: var(--accent);
+    font-size: 1.2rem;
+  }
+  .calc .desc {
+    margin: 0 0 16px;
+    color: var(--text-dim);
+    font-size: 0.92rem;
+  }
+  .calc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  @media (max-width: 720px) {
+    .calc-grid { grid-template-columns: 1fr; }
+  }
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .field input,
+  .field select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  .field input:focus,
+  .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .output {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    position: relative;
+  }
+  .output .out-line {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 0.95rem;
+    border-bottom: 1px dashed var(--border);
+  }
+  .output .out-line:last-child { border-bottom: none; }
+  .output .out-line .lbl { color: var(--text-dim); }
+  .output .out-line .val { color: var(--accent-bright); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .output .breakdown {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .copy-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent-dim);
+  }
+  .copy-btn.copied { color: var(--good); border-color: var(--good); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+  .badge.ok { background: rgba(127, 176, 105, 0.18); color: var(--good); }
+  .badge.bad { background: rgba(196, 91, 91, 0.18); color: var(--bad); }
+  .badge.warn { background: rgba(224, 164, 88, 0.18); color: var(--warn); }
+
+  .disclaimer {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(224, 164, 88, 0.08);
+    border-left: 3px solid var(--warn);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  .calc-svg {
+    width: 100%;
+    height: 220px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-top: 10px;
+  }
+
+  /* Reference tables */
+  .ref-section {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 22px;
+  }
+  .ref-section h3 {
+    margin: 0 0 4px;
+    color: var(--accent);
+    font-size: 1.2rem;
+  }
+  .ref-section .desc {
+    margin: 0 0 14px;
+    color: var(--text-dim);
+    font-size: 0.92rem;
+  }
+  table.ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+  }
+  table.ref-table th, table.ref-table td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.ref-table th {
+    color: var(--accent);
+    font-weight: 600;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+  }
+  table.ref-table tr:hover td { background: rgba(212, 165, 116, 0.04); }
+  table.ref-table td.num { font-variant-numeric: tabular-nums; text-align: right; }
+
+  /* Demo */
+  .demo-controls {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+  .demo-controls .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+  }
+  .demo-canvas-wrap {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    overflow-x: auto;
+  }
+  #framing-svg {
+    width: 100%;
+    min-height: 360px;
+    display: block;
+    background: #f4ecd8;
+    border-radius: var(--radius-sm);
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 14px;
+    font-size: 0.85rem;
+  }
+  .legend .swatch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-dim);
+  }
+  .legend .swatch span.box {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.4);
+    display: inline-block;
+  }
+  .tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: #15151f;
+    color: var(--text);
+    border: 1px solid var(--accent-dim);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    z-index: 100;
+    max-width: 240px;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+  .tooltip.show { opacity: 1; }
+
+  .btn {
+    background: var(--accent);
+    color: #1a1208;
+    border: none;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .btn:hover { background: var(--accent-bright); }
+  .btn.ghost {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent-dim);
+  }
+  .btn.ghost:hover {
+    background: rgba(212, 165, 116, 0.08);
+    color: var(--accent-bright);
+  }
+
+  .materials-list {
+    display: none;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-top: 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.88rem;
+    white-space: pre-wrap;
+    color: var(--text);
+    position: relative;
+  }
+  .materials-list.show { display: block; }
+
+  footer.site-footer {
+    text-align: center;
+    padding: 24px 16px;
+    color: var(--text-dim);
+    font-size: 0.88rem;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+  }
+  footer.site-footer .author { color: var(--accent); }
+
+  /* Print */
+  @media print {
+    body { background: #fff; color: #000; }
+    nav.tabs, header.site-header, footer.site-footer, .copy-btn, .btn { display: none !important; }
+    section.tab-panel { display: block !important; page-break-after: always; }
+    .card, .calc, .ref-section, .demo-canvas-wrap, .demo-controls { background: #fff; color: #000; border: 1px solid #ccc; }
+    .out-line .val, .calc h3, .ref-section h3, .category h3 { color: #000 !important; }
+    a { color: #000; text-decoration: underline; }
+    table.ref-table th { background: #eee; color: #000; }
+    #framing-svg { background: #fff; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>🪚 Carpenter</h1>
+  <p class="subtitle">Construction Carpentry Resources &amp; Tools</p>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab-btn active" data-tab="resources" role="tab">Resources</button>
+  <button class="tab-btn" data-tab="calculators" role="tab">Calculators</button>
+  <button class="tab-btn" data-tab="reference" role="tab">Reference</button>
+  <button class="tab-btn" data-tab="demo" role="tab">Demo</button>
+</nav>
+
+<main>
+
+  <!-- ============ RESOURCES TAB ============ -->
+  <section class="tab-panel active" id="tab-resources">
+    <h2 class="section-title">Resources</h2>
+    <p class="section-blurb">A curated reference library for construction carpentry. Each card links out to a trusted source — Fine Homebuilding, JLC, Family Handyman, and others.</p>
+
+    <div class="category">
+      <h3>Framing</h3>
+      <div class="card-grid">
+        <div class="card">
+          <div class="icon">🧱</div>
+          <h4>Wall Framing Basics</h4>
+          <p>Top &amp; bottom plates, studs at 16" or 24" OC, double top plate, blocking — the anatomy of a stud wall.</p>
+          <a class="learn" href="https://www.finehomebuilding.com/project-guides/framing/framing-walls" target="_blank" rel="noopener">Fine Homebuilding →</a>
+        </div>
+        <div class="card">
+          <div class="icon">📏</div>
+          <h4>Header Sizing</h4>
+          <p>Sizing rough-opening headers from span and load. Built-up 2x with plywood spacers vs engineered LVL.</p>
+          <a class="learn" href="https://www.finehomebuilding.com/2017/10/06/sizing-engineered-headers-and-beams" target="_blank" rel="noopener">Fine Homebuilding →</a>
+        </div>
+        <div class="card">
+          <div class="icon">🏗️</div>
+          <h4>Load-Bearing Walls</h4>
+          <p>How to identify load-bearing walls before you cut. Look at joist direction, foundation plan, and ridge alignment.</p>
+          <a class="learn" href="https://www.familyhandyman.com/article/how-to-tell-if-a-wall-is-load-bearing/" target="_blank" rel="noopener">Family Handyman →</a>
+        </div>
+        <div class="card">
+          <div class="icon">🪜</div>
+          <h4>Balloon vs Platform</h4>
+          <p>Why platform framing replaced balloon framing — fire-stopping, lift-ability, lumber length, and modern practice.</p>
+          <a class="learn" href="https://www.thisoldhouse.com/framing/21015050/all-about-house-framing" target="_blank" rel="noopener">This Old House →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="category">
+      <h3>Joinery</h3>
+      <div class="card-grid">
+        <div class="card">
+          <div class="icon">🔗</div>
+          <h4>Common Joints</h4>
+          <p>Butt, lap, dado, rabbet, mortise &amp; tenon, dovetail. Quick visual catalog of woodworking joints and uses.</p>
+          <a class="learn" href="https://www.finewoodworking.com/2014/07/15/the-essential-joinery-illustrated" target="_blank" rel="noopener">Fine Woodworking →</a>
+        </div>
+        <div class="card">
+          <div class="icon">🪵</div>
+          <h4>Mortise &amp; Tenon</h4>
+          <p>The classic frame joint — proportions, glue surface, and when to pin. Strong in compression and shear.</p>
+          <a class="learn" href="https://www.popularwoodworking.com/techniques/mortise-tenon-joints-the-basics/" target="_blank" rel="noopener">Popular Woodworking →</a>
+        </div>
+        <div class="card">
+          <div class="icon">🦅</div>
+          <h4>Dovetails</h4>
+          <p>Through, half-blind, and sliding dovetails — the strongest mechanical joint for resisting tension.</p>
+          <a class="learn" href="https://www.finewoodworking.com/2010/06/24/3-essential-dovetail-tips" target="_blank" rel="noopener">Fine Woodworking →</a>
+        </div>
+        <div class="card">
+          <div class="icon">🔩</div>
+          <h4>Pocket Screws</h4>
+          <p>Quick, strong joinery for cabinetry and face frames. Hole size and screw length per material thickness.</p>
+          <a class="learn" href="https://www.kregtool.com/learn/pocket-hole-joinery-101/" target="_blank" rel="noopener">Kreg Tool →</a>
+        </div>
+        <div class="card">
+          <div class="icon">⚖️</div>
+          <h4>Joint Strength</h4>
+          <p>Comparative strength testing of common joints — what actually fails first under load and why.</p>
+          <a class="learn" href="https://www.finewoodworking.com/2007/08/22/which-joint-is-the-strongest" target="_blank" rel="noopener">Fine Woodworking →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="category">
+      <h3>Roofing</h3>
+      <div class="card-grid">
+        <div class="card">
+          <div class="icon">📐</div>
+          <h4>Rafter Layout</h4>
+          <p>Laying out common rafters from rise/run, plumb cut, seat cut, and tail. Use a framing square or speed square.</p>
+          <a class="learn" href="https://www.finehomebuilding.com/2017/03/16/rafter-layout-step-by-step" target="_blank" rel="noopener">Fine Homebuilding →</a>
+        </div>
+        <div class="card">
+          <div class="icon">🏠</div>
+          <h4>Ridge Beam vs Ridge Board</h4>
+          <p>Structural ridge beam supports rafters; ridge board is a nailing surface only — ceiling joists or ties resist thrust.</p>
+          <a class="learn" href="https://www.jlconline.com/how-to/framing/the-difference-between-a-ridge-board-and-a-ridge-beam_o" target="_blank" rel="noopener">JLC →</a>
+        </div>
+        <div class="card">
+          <div class="icon">🔻</div>
+          <h4>Hip &amp; Valley Rafters</h4>
+          <p>Calculating hip and valley lengths — the 17-inch unit run, side-cut angles, and jack rafter step-down.</p>
+          <a class="learn" href="https://www.finehomebuilding.com/project-guides/framing/framing-a-hip-roof" target="_blank" rel="noopener">Fine Homebuilding →</a>
+        </div>
+        <div class="card">
+          <div class="icon">🐦</div>
+          <h4>Bird's Mouth Cut</h4>
+          <p>The seat and heel cut where the rafter sits on the wall plate. Don't overcut — keep at least 2/3 of the rafter depth.</p>
+          <a class="learn" href="https://www.finehomebuilding.com/2018/02/27/cutting-the-birds-mouth" target="_blank" rel="noopener">Fine Homebuilding →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="category">
+      <h3>Decks &amp; Stairs</h3>
+      <div class="card-grid">
+        <div class="card">
+          <div class="icon">📏</div>
+          <h4>Stringer Calculation</h4>
+          <p>Total rise ÷ ideal riser height = number of risers. Stringer length follows from rise² + run² (pythagorean).</p>
+          <a class="learn" href="https://www.finehomebuilding.com/2017/02/02/laying-out-stair-stringers" target="_blank" rel="noopener">Fine Homebuilding →</a>
+        </div>
+        <div class="card">
+          <div class="icon">⚖️</div>
+          <h4>IRC Stair Code</h4>
+          <p>Risers max 7¾", treads min 10", max variance 3/8" within a flight. Headroom 6'-8" minimum.</p>
+          <a class="learn" href="https://codes.iccsafe.org/content/IRC2021P2/chapter-3-building-planning#IRC2021P2_Pt03_Ch03_SecR311" target="_blank" rel="noopener">IRC R311.7 →</a>
+        </div>
+        <div class="card">
+          <div class="icon">🔩</div>
+          <h4>Ledger Attachment</h4>
+          <p>Ledger boards must be lagged or through-bolted to rim joist with proper flashing. No nails, no exceptions.</p>
+          <a class="learn" href="https://www.deckmagazine.com/design-construction/framing/proper-ledger-attachment_o" target="_blank" rel="noopener">Deck Magazine →</a>
+        </div>
+        <div class="card">
+          <div class="icon">📊</div>
+          <h4>Joist Spacing</h4>
+          <p>Deck joist spans depend on species, size, and spacing. Use AWC's DCA-6 prescriptive guide for residential decks.</p>
+          <a class="learn" href="https://awc.org/codes-standards/publications/dca6" target="_blank" rel="noopener">AWC DCA-6 →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="category">
+      <h3>Tools</h3>
+      <div class="card-grid">
+        <div class="card">
+          <div class="icon">🔨</div>
+          <h4>Essential Hand Tools</h4>
+          <p>Framing hammer, tape, speed square, chalk line, utility knife, chisels, pry bar — the daily kit.</p>
+          <a class="learn" href="https://www.finehomebuilding.com/2019/04/25/the-essential-carpenters-tool-list" target="_blank" rel="noopener">Fine Homebuilding →</a>
+        </div>
+        <div class="card">
+          <div class="icon">⚡</div>
+          <h4>Essential Power Tools</h4>
+          <p>Circular saw, miter saw, drill/driver, impact driver, recip saw, table saw, router. What every framer carries.</p>
+          <a class="learn" href="https://www.protoolreviews.com/best-power-tools-for-carpenters/" target="_blank" rel="noopener">Pro Tool Reviews →</a>
+        </div>
+        <div class="card">
+          <div class="icon">📐</div>
+          <h4>Layout Tools</h4>
+          <p>Framing square, speed square, combination square, levels, plumb bob, laser level, story pole.</p>
+          <a class="learn" href="https://www.thisoldhouse.com/tools/21015108/best-layout-tools-for-carpenters" target="_blank" rel="noopener">This Old House →</a>
+        </div>
+        <div class="card">
+          <div class="icon">🦺</div>
+          <h4>Safety Equipment</h4>
+          <p>Eye, ear, and lung protection. Hard hats, fall arrest, knee pads, gloves. ANSI ratings matter.</p>
+          <a class="learn" href="https://www.osha.gov/sites/default/files/publications/OSHA3252.pdf" target="_blank" rel="noopener">OSHA Construction PPE →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CALCULATORS TAB ============ -->
+  <section class="tab-panel" id="tab-calculators">
+    <h2 class="section-title">Calculators</h2>
+    <p class="section-blurb">Real construction math. All inputs update results instantly — no submit buttons.</p>
+    <div id="calculators-root"></div>
+  </section>
+
+  <!-- ============ REFERENCE TAB ============ -->
+  <section class="tab-panel" id="tab-reference">
+    <h2 class="section-title">Reference</h2>
+    <p class="section-blurb">Quick-reference tables and visual guides for the field.</p>
+    <div id="reference-root"></div>
+  </section>
+
+  <!-- ============ DEMO TAB ============ -->
+  <section class="tab-panel" id="tab-demo">
+    <h2 class="section-title">Wall Framing Visualizer</h2>
+    <p class="section-blurb">Adjust the controls to see a live front-elevation drawing of a framed wall — plates, studs, rough openings, headers, and cripples. Hover any member for details.</p>
+    <div id="demo-root"></div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  Built by <span class="author">GuildMasterDev</span> • Not a substitute for professional engineering
+</footer>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+/* ---------- Tab Switching ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + target));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+</script>
+
+</body>
+</html>
