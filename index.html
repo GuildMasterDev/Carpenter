@@ -288,15 +288,12 @@
     line-height: 1.6;
   }
   .copy-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
     background: var(--bg-elev-2);
     border: 1px solid var(--border);
     color: var(--text-dim);
-    padding: 4px 8px;
+    padding: 5px 12px;
     border-radius: var(--radius-sm);
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     cursor: pointer;
     transition: all 0.15s ease;
   }
@@ -305,6 +302,17 @@
     border-color: var(--accent-dim);
   }
   .copy-btn.copied { color: var(--good); border-color: var(--good); }
+  .copy-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+  /* Materials list keeps the floating button — its content is monospace text */
+  .materials-list .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
 
   .badge {
     display: inline-block;
@@ -864,6 +872,8 @@ function buildLumberEstimator() {
 
   const out = el('div', { class: 'output' });
   const breakdown = el('div', { class: 'breakdown' });
+  let copyText = '';
+  const copyRow = el('div', { class: 'copy-row' }, makeCopyButton(() => copyText));
 
   function recompute() {
     const L = parseFloat(wallLen.value) || 0;
@@ -890,7 +900,6 @@ function buildLumberEstimator() {
     const headerLF = (win + dr) * 4;
 
     out.innerHTML = '';
-    out.appendChild(makeCopyButton(() => copyText));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Common studs'), el('span', { class: 'val' }, String(commonStuds))));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Corner / end studs'), el('span', { class: 'val' }, String(cornerStuds))));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'King studs'), el('span', { class: 'val' }, String(kingStuds))));
@@ -910,7 +919,7 @@ function buildLumberEstimator() {
     `;
     out.appendChild(breakdown);
 
-    var copyText = `Lumber Estimate (${L}' × ${H}' wall, ${sp}" OC)\n` +
+    copyText = `Lumber Estimate (${L}' × ${H}' wall, ${sp}" OC)\n` +
       `Total studs: ${totalStuds}\n` +
       `  Common: ${commonStuds}\n  Corner/end: ${cornerStuds}\n  King: ${kingStuds}\n  Trimmer: ${trimmerStuds}\n  Cripples: ${cripples}\n` +
       `Plate stock: ${plateLF.toFixed(1)} linear ft\n` +
@@ -927,7 +936,7 @@ function buildLumberEstimator() {
     field('Number of doors', doors)
   );
 
-  container.appendChild(el('div', { class: 'calc-grid' }, inputs, out));
+  container.appendChild(el('div', { class: 'calc-grid' }, inputs, el('div', {}, out, copyRow)));
   recompute();
   return container;
 }
@@ -946,6 +955,8 @@ function buildStairCalculator() {
   svg.setAttribute('class', 'calc-svg');
   svg.setAttribute('viewBox', '0 0 400 220');
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  let copyText = '';
+  const copyRow = el('div', { class: 'copy-row' }, makeCopyButton(() => copyText));
 
   function recompute() {
     const rise = parseFloat(totalRise.value) || 0;
@@ -967,7 +978,6 @@ function buildStairCalculator() {
     const ruleOK = rule >= 23 && rule <= 25.5;
 
     out.innerHTML = '';
-    out.appendChild(makeCopyButton(() => copyText));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Number of risers'), el('span', { class: 'val' }, String(nRisers))));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Number of treads'), el('span', { class: 'val' }, String(nTreads))));
     const riseLine = el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Riser height'), el('span', { class: 'val' }, fmt(riserHt, 3) + '"'));
@@ -993,7 +1003,7 @@ function buildStairCalculator() {
 
     drawStairSvg(nRisers, riserHt, tread, rise, totalRun);
 
-    var copyText = `Stair Calculation (rise ${rise}", tread ${tread}")\n` +
+    copyText = `Stair Calculation (rise ${rise}", tread ${tread}")\n` +
       `Risers: ${nRisers}\n` +
       `Riser height: ${riserHt.toFixed(3)}" ${riserOK ? '(code OK)' : '(OUT OF CODE)'}\n` +
       `Treads: ${nTreads}\n` +
@@ -1069,7 +1079,7 @@ function buildStairCalculator() {
     el('div', { class: 'disclaimer' }, 'IRC R311.7: max riser 7¾", min tread 10", max variance ⅜" within a flight. Verify with local code.')
   );
 
-  const outputCol = el('div', {}, out, svg);
+  const outputCol = el('div', {}, out, svg, copyRow);
   container.appendChild(el('div', { class: 'calc-grid' }, inputs, outputCol));
   recompute();
   return container;
@@ -1088,6 +1098,8 @@ function buildRoofPitch() {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('class', 'calc-svg');
   svg.setAttribute('viewBox', '0 0 400 220');
+  let copyText = '';
+  const copyRow = el('div', { class: 'copy-row' }, makeCopyButton(() => copyText));
 
   let updating = false;
 
@@ -1116,7 +1128,6 @@ function buildRoofPitch() {
     const rafterPerFootOfRun = slopeFactor * 12; // inches per foot of run
 
     out.innerHTML = '';
-    out.appendChild(makeCopyButton(() => copyText));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Pitch ratio'), el('span', { class: 'val' }, fmt(r, 2) + ' / 12')));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Angle'), el('span', { class: 'val' }, fmt(a, 2) + '°')));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Slope factor'), el('span', { class: 'val' }, fmt(slopeFactor, 4))));
@@ -1130,7 +1141,7 @@ function buildRoofPitch() {
 
     drawRoofSvg(r, a);
 
-    var copyText = `Roof Pitch ${r.toFixed(2)}/12 (${a.toFixed(2)}°)\n` +
+    copyText = `Roof Pitch ${r.toFixed(2)}/12 (${a.toFixed(2)}°)\n` +
       `Slope factor: ${slopeFactor.toFixed(4)}\n` +
       `Rafter per foot of run: ${rafterPerFootOfRun.toFixed(3)}"`;
   }
@@ -1192,7 +1203,7 @@ function buildRoofPitch() {
     field('— or — angle in degrees', angle),
     el('div', { class: 'disclaimer' }, 'Common pitches: 4/12 (low), 6/12 (medium), 8/12 (steep), 12/12 (45°). Below 2/12 typically requires special roofing.')
   );
-  const outputCol = el('div', {}, out, svg);
+  const outputCol = el('div', {}, out, svg, copyRow);
   container.appendChild(el('div', { class: 'calc-grid' }, inputs, outputCol));
   recomputeFromRise();
   return container;
@@ -1211,6 +1222,8 @@ function buildBoardFoot() {
   const rate = numberInput(4.50, { step: '0.05', min: '0', max: '100' });
 
   const out = el('div', { class: 'output' });
+  let copyText = '';
+  const copyRow = el('div', { class: 'copy-row' }, makeCopyButton(() => copyText));
 
   function recompute() {
     const t = parseFloat(thick.value) || 0;
@@ -1225,7 +1238,6 @@ function buildBoardFoot() {
     const cost = totalBf * r;
 
     out.innerHTML = '';
-    out.appendChild(makeCopyButton(() => copyText));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Board feet per piece'), el('span', { class: 'val' }, fmt(bfPer, 3) + ' bf')));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Total board feet'), el('span', { class: 'val' }, fmt(totalBf, 2) + ' bf')));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Estimated cost'), el('span', { class: 'val' }, '$' + fmt(cost, 2))));
@@ -1236,7 +1248,7 @@ function buildBoardFoot() {
       Cost = ${totalBf.toFixed(2)} bf × $${r.toFixed(2)}/bf = $${cost.toFixed(2)}`
     }));
 
-    var copyText = `Board Foot Calculation\n` +
+    copyText = `Board Foot Calculation\n` +
       `${q} pcs × ${t}" × ${w}" × ${L} ft\n` +
       `Per piece: ${bfPer.toFixed(3)} bf\n` +
       `Total: ${totalBf.toFixed(2)} bf\n` +
@@ -1253,7 +1265,7 @@ function buildBoardFoot() {
     field('Rate ($ / board foot)', rate)
   );
 
-  container.appendChild(el('div', { class: 'calc-grid' }, inputs, out));
+  container.appendChild(el('div', { class: 'calc-grid' }, inputs, el('div', {}, out, copyRow)));
   recompute();
   return container;
 }
@@ -1319,6 +1331,8 @@ function buildSpanTable() {
   );
 
   const out = el('div', { class: 'output' });
+  let copyText = '';
+  const copyRow = el('div', { class: 'copy-row' }, makeCopyButton(() => copyText));
 
   function recompute() {
     const sz = size.value;
@@ -1329,14 +1343,13 @@ function buildSpanTable() {
     const ftIn = isFinite(span) ? `${Math.floor(span)}' ${Math.round((span - Math.floor(span)) * 12)}"` : '—';
 
     out.innerHTML = '';
-    out.appendChild(makeCopyButton(() => copyText));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Member'), el('span', { class: 'val' }, `${sz} ${sp}`)));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Spacing'), el('span', { class: 'val' }, oc + '" OC')));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Load case'), el('span', { class: 'val' }, lt === 'floor40' ? 'Floor 40 psf' : 'Ceiling 20 psf')));
     out.appendChild(el('div', { class: 'out-line' }, el('span', { class: 'lbl' }, 'Maximum span'), el('span', { class: 'val' }, isFinite(span) ? span.toFixed(2) + ' ft (' + ftIn + ')' : '—')));
     out.appendChild(el('div', { class: 'disclaimer' }, 'Values are approximations of IRC prescriptive tables. Always verify with your local building code and a structural professional for unusual loads or configurations.'));
 
-    var copyText = `Span Table — ${sz} ${sp} @ ${oc}" OC, ${lt === 'floor40' ? 'Floor 40 psf' : 'Ceiling 20 psf'}\n` +
+    copyText = `Span Table — ${sz} ${sp} @ ${oc}" OC, ${lt === 'floor40' ? 'Floor 40 psf' : 'Ceiling 20 psf'}\n` +
       `Maximum span: ${isFinite(span) ? span.toFixed(2) + ' ft (' + ftIn + ')' : '—'}`;
   }
 
@@ -1349,7 +1362,7 @@ function buildSpanTable() {
     field('Load type', loadType)
   );
 
-  container.appendChild(el('div', { class: 'calc-grid' }, inputs, out));
+  container.appendChild(el('div', { class: 'calc-grid' }, inputs, el('div', {}, out, copyRow)));
   recompute();
   return container;
 }
